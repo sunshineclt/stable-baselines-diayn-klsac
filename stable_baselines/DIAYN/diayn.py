@@ -186,15 +186,21 @@ class DIAYN(OffPolicyRLModel):
                     # policy_out corresponds to stochastic actions, used for training
                     # logp_pi is the log probabilty of actions taken by the policy
                     self.deterministic_action, policy_out, logp_pi = self.policy_tf.make_actor(self.processed_obs_ph)
+                    logp_pi_mean = tf.reduce_mean(logp_pi)
                     # Monitor the entropy of the policy,
                     # this is not used for training
                     self.entropy = tf.reduce_mean(self.policy_tf.entropy)
                     #  Use two Q-functions to improve performance by reducing overestimation bias.
                     qf1, qf2, value_fn = self.policy_tf.make_critics(self.processed_obs_ph, self.actions_ph,
                                                                      create_qf=True, create_vf=True)
+                    qf1_mean = tf.reduce_mean(qf1)
+                    qf2_mean = tf.reduce_mean(qf2)
+                    v_mean = tf.reduce_mean(value_fn)
                     qf1_pi, qf2_pi, _ = self.policy_tf.make_critics(self.processed_obs_ph,
                                                                     policy_out, create_qf=True, create_vf=False,
                                                                     reuse=True)
+                    qf1_pi_mean = tf.reduce_mean(qf1_pi)
+                    qf2_pi_mean = tf.reduce_mean(qf2_pi)
 
                     # Target entropy is used when learning the entropy coefficient
                     if self.target_entropy == 'auto':
@@ -334,6 +340,13 @@ class DIAYN(OffPolicyRLModel):
                     tf.summary.scalar('value_loss', value_loss)
                     tf.summary.scalar('entropy', self.entropy)
                     tf.summary.scalar('intrinsic_reward_mean', self.intrinsic_reward_mean)
+                    tf.summary.scalar('qf1_mean', qf1_mean)
+                    tf.summary.scalar('qf2_mean', qf2_mean)
+                    tf.summary.scalar('v_mean', v_mean)
+                    tf.summary.scalar('qf1_pi_mean', qf1_pi_mean)
+                    tf.summary.scalar('qf2_pi_mean', qf2_pi_mean)
+                    tf.summary.scalar('logp_pi_mean', logp_pi_mean)
+                    tf.summary.scalar('reward_mean', tf.reduce_mean(self.rewards_ph))
                     if ent_coef_loss is not None:
                         tf.summary.scalar('ent_coef_loss', ent_coef_loss)
                         tf.summary.scalar('ent_coef', self.ent_coef)
