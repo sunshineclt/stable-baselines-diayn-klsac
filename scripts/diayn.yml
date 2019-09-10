@@ -61,7 +61,7 @@ HalfCheetahBulletEnv-v0:
   learning_starts: 10000
 
 HalfCheetah-v2:
-  n_timesteps: !!float 1e6
+  n_timesteps: !!float 1e7
   policy: 'CustomSACPolicy'
   learning_rate: !!float 3e-4
   buffer_size: 1000000

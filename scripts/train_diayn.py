@@ -81,8 +81,11 @@ log_folder = "log"
 log_path = "{}/{}/".format(log_folder, algo)
 save_path = os.path.join(log_path, "{}_{}".format(env_id, get_latest_run_id(log_path, env_id) + 1))
 
+# model = DIAYN.load("./log/diayn/HalfCheetah-v2_4/700000/model.pkl", env=env,
+#                    tensorboard_log=None, verbose=1, **hyperparams)
+
 model = DIAYN(policy, env, tensorboard_log=tensorboard_log, verbose=1, save_path=save_path, **hyperparams)
-model.learn(n_timesteps)
+model.learn(n_timesteps, seed=1)
 
 # saving
 params_path = "{}/{}".format(save_path, env_id)

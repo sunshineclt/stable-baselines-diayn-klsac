@@ -272,7 +272,7 @@ class FeedForwardPolicy(DIAYNPolicy):
 
         self.intrinsic_reward = -1 * tf.nn.softmax_cross_entropy_with_logits_v2(z_one_hot, self.logit)
 
-        return self.intrinsic_reward
+        return self.intrinsic_reward, self.logit, z_one_hot
 
     def make_critics(self, obs=None, action=None, reuse=False, scope="values_fn",
                      create_vf=True, create_qf=True):
@@ -373,7 +373,7 @@ class MlpPolicy(FeedForwardPolicy):
 
     def __init__(self, sess, ob_space, ac_space, n_env=1, n_steps=1, n_batch=None, reuse=False, **_kwargs):
         super(MlpPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse,
-                                        feature_extraction="mlp", **_kwargs)
+                                        feature_extraction="mlp", layers=[300, 300], **_kwargs)
 
 
 class LnMlpPolicy(FeedForwardPolicy):

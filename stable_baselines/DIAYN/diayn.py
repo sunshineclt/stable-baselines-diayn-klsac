@@ -72,9 +72,10 @@ class DIAYN(OffPolicyRLModel):
         Note: this has no effect on SAC logging for now
     """
 
-    def __init__(self, policy, env, gamma=0.99, learning_rate=3e-4, buffer_size=50000, num_skills=5, scale_intrinsic=1,
-                 learning_starts=100, train_freq=1, batch_size=64,
-                 tau=0.005, ent_coef='auto', target_update_interval=1,
+    def __init__(self, policy, env, gamma=0.99, learning_rate=3e-4, buffer_size=int(1e6),
+                 num_skills=20, scale_intrinsic=1.0,
+                 learning_starts=100, train_freq=1, batch_size=128,
+                 tau=0.01, ent_coef='auto', target_update_interval=1,
                  gradient_steps=1, target_entropy='auto', action_noise=None,
                  random_exploration=0.0, verbose=0, tensorboard_log=None,
                  _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False,
@@ -140,6 +141,12 @@ class DIAYN(OffPolicyRLModel):
         self.processed_obs_ph = None
         self.processed_next_obs_ph = None
         self.log_ent_coef = None
+        # for debug
+        self.discriminator_logit = None
+        self.discriminator_z = None
+        self.original_intrinsic_reward = None
+        self.intrinsic_reward_mean = None
+        self.discriminator_train_op = None
 
         if _init_setup_model:
             self.setup_model()
@@ -231,7 +238,10 @@ class DIAYN(OffPolicyRLModel):
                         self.ent_coef = float(self.ent_coef)
 
                     # Create the discriminator network
-                    intrinsic_reward = self.policy_tf.make_discriminator(self.observations_ph)
+                    intrinsic_reward, logit, z_one_hot = self.policy_tf.make_discriminator(self.processed_obs_ph)
+                    self.discriminator_logit = logit
+                    self.discriminator_z = z_one_hot
+                    self.original_intrinsic_reward = intrinsic_reward
                     # intrinsic reward minus log_p_z
                     self.intrinsic_reward = intrinsic_reward - tf.expand_dims(tf.log(self.p_z_ph + EPS), axis=0)
                     self.intrinsic_reward_mean = tf.reduce_mean(self.intrinsic_reward)
@@ -247,8 +257,13 @@ class DIAYN(OffPolicyRLModel):
                     min_qf_pi = tf.minimum(qf1_pi, qf2_pi)
 
                     # Target for Q value regression
+                    # q_backup = tf.stop_gradient(
+                    #     self.rewards_ph + self.intrinsic_reward * self.scale_intrinsic +
+                    #     (1 - self.terminals_ph) * self.gamma * self.value_target
+                    # )
+                    # intrinsic only
                     q_backup = tf.stop_gradient(
-                        self.rewards_ph + self.intrinsic_reward * self.scale_intrinsic +
+                        self.intrinsic_reward * self.scale_intrinsic +
                         (1 - self.terminals_ph) * self.gamma * self.value_target
                     )
 
@@ -286,8 +301,9 @@ class DIAYN(OffPolicyRLModel):
 
                     # Discriminator train op
                     discriminator_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
-                    discriminator_train_op = discriminator_optimizer.minimize(-self.intrinsic_reward_mean,
+                    discriminator_train_op = discriminator_optimizer.minimize(-1.0 * self.intrinsic_reward_mean,
                                                                               var_list=get_vars('model/discriminator/'))
+                    self.discriminator_train_op = discriminator_train_op
 
                     # Policy train op
                     # (has to be separate from value train op, because min_qf_pi appears in policy_loss)
