@@ -588,17 +588,11 @@ class DIAYN(OffPolicyRLModel):
 
     def predict(self, observation, state=None, mask=None, deterministic=True):
         observation = np.array(observation)
-        vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
-
-        observation = observation.reshape((-1,) + self.observation_space.shape)
         actions = self.policy_tf.step(observation, deterministic=deterministic)
-        actions = actions.reshape((-1,) + self.action_space.shape)  # reshape to the correct action shape
-        actions = actions * np.abs(self.action_space.low)  # scale the output for the prediction
 
-        if not vectorized_env:
-            actions = actions[0]
+        actions = actions[0]
 
-        return actions, None
+        return actions
 
     def get_parameter_list(self):
         return (self.params +
@@ -627,7 +621,9 @@ class DIAYN(OffPolicyRLModel):
             "action_noise": self.action_noise,
             "random_exploration": self.random_exploration,
             "_vectorize_action": self._vectorize_action,
-            "policy_kwargs": self.policy_kwargs
+            "policy_kwargs": self.policy_kwargs,
+            "num_skills": self.num_skills,
+            "scale_intrinsic": self.scale_intrinsic
         }
 
         params_to_save = self.get_parameters()
