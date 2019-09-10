@@ -339,7 +339,7 @@ class DIAYN(OffPolicyRLModel):
                     tf.summary.scalar('qf2_loss', qf2_loss)
                     tf.summary.scalar('value_loss', value_loss)
                     tf.summary.scalar('entropy', self.entropy)
-                    tf.summary.scalar('intrinsic_reward_mean', self.intrinsic_reward_mean)
+                    tf.summary.scalar('intrinsic_reward_mean (with p_z)', self.intrinsic_reward_mean)
                     tf.summary.scalar('qf1_mean', qf1_mean)
                     tf.summary.scalar('qf2_mean', qf2_mean)
                     tf.summary.scalar('v_mean', v_mean)
