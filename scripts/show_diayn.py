@@ -27,14 +27,14 @@ log_folder = "log"
 log_path = "{}/{}/".format(log_folder, algo)
 # save_path e.g. /log/diayn/HalfCheetah-v2_1
 save_path = os.path.join(log_path, "{}_{}".format(env_id, get_latest_run_id(log_path, env_id)))
-openai_log_path = os.path.join(save_path, "openai")
-video_path = os.path.join(save_path, "videos")
+openai_log_path = os.path.join(save_path, "openai_1200000")
+video_path = os.path.join(save_path, "videos_1200000")
 
 env = create_test_env(env_id, n_envs=1,
                       seed=seed, log_dir=openai_log_path,
                       should_render=True, )
 
-model = DIAYN.load("./log/diayn/HalfCheetah-v2_4/4600000/model.pkl", env=env,
+model = DIAYN.load("./log/diayn/HalfCheetah-v2_5/1200000/model.pkl", env=env,
                    tensorboard_log=None, verbose=1, **hyperparams)
 
 for skill in range(num_skills):

@@ -432,7 +432,7 @@ class DIAYN(OffPolicyRLModel):
         return np.hstack([obs, z_one_hot])
 
     def learn(self, total_timesteps, callback=None, seed=None,
-              log_interval=4, tb_log_name="SAC", reset_num_timesteps=True, replay_wrapper=None):
+              log_interval=4, tb_log_name="DIAYN", reset_num_timesteps=True, replay_wrapper=None):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
 
@@ -589,8 +589,6 @@ class DIAYN(OffPolicyRLModel):
     def predict(self, observation, state=None, mask=None, deterministic=True):
         observation = np.array(observation)
         actions = self.policy_tf.step(observation, deterministic=deterministic)
-
-        actions = actions[0]
 
         return actions
 
