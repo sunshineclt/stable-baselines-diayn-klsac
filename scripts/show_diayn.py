@@ -3,39 +3,32 @@ import yaml
 import gym
 import numpy as np
 
-from scripts.utils import create_test_env, get_latest_run_id, save_video
+from scripts.utils import *
 from stable_baselines.DIAYN.diayn import DIAYN
 from stable_baselines.DIAYN.policies import MlpPolicy
 
 algo = "diayn"
 env_id = "HalfCheetah-v2"
+trained_iter_number = "1400000"
 seed = 0
 deterministic = True
-tensorboard_log = "log/tb/%s/" % env_id
+tensorboard_log = create_tensorboard_log_dir(env_id)
 n_timesteps = 1000
 num_skills = 20
-with open('diayn.yml', 'r') as f:
-    hyperparams_dict = yaml.load(f)
-    hyperparams = hyperparams_dict[env_id]
-
+hyperparams = load_hyperparameter_from_yml("diayn.yml", env_id)
 del hyperparams["n_timesteps"]
 del hyperparams["policy"]
+hyperparams["num_skills"] = num_skills
+
+save_path = create_save_path("log", algo, env_id, id=5)
+openai_log_path = os.path.join(save_path, "openai_" + trained_iter_number)
+video_path = os.path.join(save_path, "videos_" + trained_iter_number)
+
+env = create_test_env(env_id, n_envs=1, seed=seed, log_dir=openai_log_path, should_render=True, )
 policy = MlpPolicy
 
-log_folder = "log"
-# log_path e.g. ./log/diayn/
-log_path = "{}/{}/".format(log_folder, algo)
-# save_path e.g. /log/diayn/HalfCheetah-v2_1
-save_path = os.path.join(log_path, "{}_{}".format(env_id, get_latest_run_id(log_path, env_id)))
-openai_log_path = os.path.join(save_path, "openai_1200000")
-video_path = os.path.join(save_path, "videos_1200000")
-
-env = create_test_env(env_id, n_envs=1,
-                      seed=seed, log_dir=openai_log_path,
-                      should_render=True, )
-
-model = DIAYN.load("./log/diayn/HalfCheetah-v2_5/1200000/model.pkl", env=env,
-                   tensorboard_log=None, verbose=1, **hyperparams)
+model = DIAYN.load(os.path.join(save_path, trained_iter_number, "/model.pkl"),
+                   env=env, tensorboard_log=None, verbose=1, **hyperparams)
 
 for skill in range(num_skills):
     obs = env.reset()

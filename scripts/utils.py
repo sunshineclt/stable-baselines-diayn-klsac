@@ -3,6 +3,7 @@ import os
 import time
 
 import gym
+import yaml
 
 from stable_baselines import logger
 from stable_baselines.bench import Monitor
@@ -103,3 +104,24 @@ def save_video(ims, filename):
     for im in ims:
         writer.write(im)
     writer.release()
+
+
+def create_tensorboard_log_dir(env_id):
+    return "log/tb/%s/" % env_id
+
+
+def load_hyperparameter_from_yml(filename, env_id):
+    with open(filename, 'r') as f:
+        hyperparams_dict = yaml.load(f)
+        hyperparams = hyperparams_dict[env_id]
+    return hyperparams
+
+
+def create_save_path(log_root, algo, env_id, id=None):
+    log_path = "{}/{}/".format(log_root, algo)
+    if id:
+        save_path = os.path.join(log_path, "{}_{}".format(env_id, id))
+    else:
+        save_path = os.path.join(log_path, "{}_{}".format(env_id, get_latest_run_id(log_path, env_id) + 1))
+    os.makedirs(save_path, exist_ok=True)
+    return save_path
