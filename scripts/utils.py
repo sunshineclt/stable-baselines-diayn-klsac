@@ -15,6 +15,7 @@ def create_test_env(env_id, n_envs=1, seed=0,
                     log_dir='', should_render=True):
     """
     Create environment for testing a trained agent
+    NOTE: the env will be vectorized!!!
 
     :param env_id: (str)
     :param n_envs: (int) number of processes
