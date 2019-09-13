@@ -29,7 +29,7 @@ video_path = os.path.join(save_path, "videos_" + trained_iter_number)
 env = create_test_env(env_id, n_envs=1, seed=seed, log_dir=openai_log_path, should_render=True, )
 policy = MlpPolicy
 
-model = DIAYN.load(os.path.join(save_path, trained_iter_number, "/model.pkl"),
+model = DIAYN.load(os.path.join(save_path, trained_iter_number, "model.pkl"),
                    env=env, tensorboard_log=None, verbose=1, **hyperparams)
 
 for skill in tqdm(range(num_skills)):
