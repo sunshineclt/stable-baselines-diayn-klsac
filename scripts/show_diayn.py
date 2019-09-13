@@ -54,7 +54,7 @@ for skill in tqdm(range(num_skills)):
 
         if done:
             tqdm.write("Episode Reward: {:.2f}".format(episode_reward))
-            tqdm.write("Episode Length", ep_len)
+            tqdm.write("Episode Length %d" % ep_len)
             episode_rewards.append(episode_reward)
             episode_reward = 0.0
             ep_len = 0
