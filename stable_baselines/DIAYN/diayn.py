@@ -193,6 +193,8 @@ class DIAYN(OffPolicyRLModel):
                     # policy_out corresponds to stochastic actions, used for training
                     # logp_pi is the log probabilty of actions taken by the policy
                     self.deterministic_action, policy_out, logp_pi = self.policy_tf.make_actor(self.processed_obs_ph)
+                    self.policy_out = policy_out
+                    self.logp_pi = logp_pi
                     logp_pi_mean = tf.reduce_mean(logp_pi)
                     # Monitor the entropy of the policy,
                     # this is not used for training
@@ -588,7 +590,8 @@ class DIAYN(OffPolicyRLModel):
 
     def predict(self, observation, state=None, mask=None, deterministic=True):
         observation = np.array(observation)
-        actions = self.policy_tf.step(observation, deterministic=deterministic)
+        # actions = self.policy_tf.step(observation, deterministic=deterministic)
+        actions = self.sess.run([self.policy_out, self.logp_pi], feed_dict={self.observations_ph: observation})
 
         return actions
 
