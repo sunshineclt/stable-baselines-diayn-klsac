@@ -58,7 +58,10 @@ def make_env(env_id, rank=0, seed=0, log_dir=None, wrapper_class=None):
 
     def _init():
         set_global_seeds(seed + rank)
-        env = gym.make(env_id)
+        if env_id == "Hopper-v3":
+            env = gym.make(env_id, terminate_when_unhealthy=False)
+        else:
+            env = gym.make(env_id)
 
         # Dict observation space is currently not supported.
         # https://github.com/hill-a/stable-baselines/issues/321
