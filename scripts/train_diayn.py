@@ -7,8 +7,8 @@ from stable_baselines.DIAYN.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 
 algo = "diayn"
-env_id = "HalfCheetah-v2"
-seed = 0
+env_id = "Hopper-v3"
+seed = 1
 tensorboard_log = create_tensorboard_log_dir(env_id)
 hyperparams = load_hyperparameter_from_yml("diayn.yml", env_id)
 n_timesteps = int(hyperparams["n_timesteps"])

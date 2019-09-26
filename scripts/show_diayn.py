@@ -34,20 +34,20 @@ def evaluate(skill, repeat=0):
 if __name__ == "__main__":
     # Parameters! Take a good look before execution!!!
     algo = "diayn"
-    env_id = "InvertedPendulum-v2"
-    trained_iter_number = "final"
+    env_id = "Hopper-v3"
+    trained_iter_number = "1700000"
     seed = 0
     deterministic = True
     tensorboard_log = create_tensorboard_log_dir(env_id)
     n_timesteps = 1000
-    num_skills = 20
+    num_skills = 10
     hyperparams = load_hyperparameter_from_yml("diayn.yml", env_id)
     del hyperparams["n_timesteps"]
     del hyperparams["policy"]
     hyperparams["num_skills"] = num_skills
 
     # Create paths
-    save_path = create_save_path("log", algo, env_id, id=1)
+    save_path = create_save_path("log", algo, env_id, id=2)
     openai_log_path = os.path.join(save_path, "openai_" + trained_iter_number)
     video_path = os.path.join(save_path, "videos_" + trained_iter_number)
     model_path = os.path.join(save_path, trained_iter_number, "model.pkl") \
