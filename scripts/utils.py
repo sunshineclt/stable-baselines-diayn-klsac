@@ -59,7 +59,8 @@ def make_env(env_id, rank=0, seed=0, log_dir=None, wrapper_class=None):
     def _init():
         set_global_seeds(seed + rank)
         if env_id == "Hopper-v3":
-            env = gym.make(env_id, terminate_when_unhealthy=False)
+            # env = gym.make(env_id, terminate_when_unhealthy=False)
+            env = gym.make(env_id)
         else:
             env = gym.make(env_id)
 
