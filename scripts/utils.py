@@ -59,8 +59,8 @@ def make_env(env_id, rank=0, seed=0, log_dir=None, wrapper_class=None):
     def _init():
         set_global_seeds(seed + rank)
         if env_id == "Hopper-v3":
-            # env = gym.make(env_id, terminate_when_unhealthy=False)
-            env = gym.make(env_id)
+            env = gym.make(env_id, terminate_when_unhealthy=False)
+            # env = gym.make(env_id)
         else:
             env = gym.make(env_id)
 
@@ -95,7 +95,7 @@ def get_latest_run_id(log_path, env_id):
     return max_run_id
 
 
-def save_video(ims, filename):
+def save_video(ims, filename, fps=30.0):
     import cv2
     folder = os.path.dirname(filename)
     if not os.path.exists(folder):
@@ -103,7 +103,6 @@ def save_video(ims, filename):
 
     # Define the codec and create VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    fps = 30.0
     (height, width, _) = ims[0].shape
     writer = cv2.VideoWriter(filename, fourcc, fps, (width, height))
     for im in ims:

@@ -28,14 +28,14 @@ def evaluate(skill, repeat=0):
             assert timestep == n_timesteps - 1, "Done before assigned timestep! "
 
     tqdm.write("Skill {}, Repeat {}, Episode Reward: {:.2f}".format(skill, repeat, episode_reward))
-    save_video(imgs, os.path.join(video_path, "skill_%d_repeat_%d.avi" % (skill, repeat)))
+    save_video(imgs, os.path.join(video_path, "skill_%d_repeat_%d.avi" % (skill, repeat)), fps=60.0)
 
 
 if __name__ == "__main__":
     # Parameters! Take a good look before execution!!!
     algo = "diayn"
     env_id = "Hopper-v3"
-    trained_iter_number = "1700000"
+    trained_iter_number = "2600000"
     seed = 0
     deterministic = True
     tensorboard_log = create_tensorboard_log_dir(env_id)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     hyperparams["num_skills"] = num_skills
 
     # Create paths
-    save_path = create_save_path("log", algo, env_id, id=2)
+    save_path = create_save_path("log", algo, env_id, id=3)
     openai_log_path = os.path.join(save_path, "openai_" + trained_iter_number)
     video_path = os.path.join(save_path, "videos_" + trained_iter_number)
     model_path = os.path.join(save_path, trained_iter_number, "model.pkl") \
