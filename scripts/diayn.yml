@@ -17,7 +17,7 @@ Pendulum-v0:
   learning_starts: 1000
 
 LunarLanderContinuous-v2:
-  n_timesteps: !!float 5e5
+  n_timesteps: !!float 1e6
   policy: 'MlpPolicy'
   batch_size: 256
   learning_starts: 1000
@@ -82,6 +82,17 @@ Hopper-v3:
   gradient_steps: 1
   learning_starts: 10000
   num_skills: 10
+
+Reacher-v2:
+  n_timesteps: !!float 1e6
+  policy: 'CustomSACPolicy'
+  learning_rate: !!float 3e-4
+  buffer_size: 1000000
+  batch_size: 64
+  ent_coef: 0.01
+  train_freq: 1
+  gradient_steps: 1
+  learning_starts: 1000
 
 # Tuned
 AntBulletEnv-v0:

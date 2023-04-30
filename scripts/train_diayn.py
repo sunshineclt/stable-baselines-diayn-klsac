@@ -24,7 +24,7 @@ policy = MlpPolicy
 #                    tensorboard_log=tensorboard_log, verbose=1, save_path=save_path,
 #                    **hyperparams)
 # Train from scratch
-model = DIAYN(policy, env,
+model = DIAYN(policy, env, scale_intrinsic=0.2,
               tensorboard_log=tensorboard_log, verbose=1, save_path=save_path,
               **hyperparams)
 
@@ -32,6 +32,6 @@ model.learn(n_timesteps, seed=seed)
 
 # saving
 params_path = "{}/final/model.pkl".format(save_path)
-os.makedirs(save_path, exist_ok=True)
+os.makedirs(os.path.join(save_path, "final"), exist_ok=True)
 print("Saving to {}".format(save_path))
 model.save(params_path)

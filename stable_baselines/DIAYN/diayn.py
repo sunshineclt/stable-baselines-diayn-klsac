@@ -263,6 +263,10 @@ class DIAYN(OffPolicyRLModel):
                         self.rewards_ph + self.intrinsic_reward * self.scale_intrinsic +
                         (1 - self.terminals_ph) * self.gamma * self.value_target
                     )
+                    # extrinsic only
+                    # q_backup = tf.stop_gradient(
+                    #     self.rewards_ph + (1 - self.terminals_ph) * self.gamma * self.value_target
+                    # )
                     # intrinsic only
                     # q_backup = tf.stop_gradient(
                     #     self.intrinsic_reward * self.scale_intrinsic +

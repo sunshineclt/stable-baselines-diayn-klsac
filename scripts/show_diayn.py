@@ -25,6 +25,7 @@ def evaluate(skill, repeat=0):
         episode_reward += reward[0]
 
         if done:
+            # break
             assert timestep == n_timesteps - 1, "Done before assigned timestep! "
 
     tqdm.write("Skill {}, Repeat {}, Episode Reward: {:.2f}".format(skill, repeat, episode_reward))
@@ -57,6 +58,7 @@ if __name__ == "__main__":
     # Load model
     # NOTE: env created will be vectorized (though n_envs=1)
     env = create_test_env(env_id, n_envs=1, seed=seed, log_dir=openai_log_path, should_render=True, )
+    env.close()
     # not general
     policy = MlpPolicy
     model = DIAYN.load(model_path,
@@ -64,4 +66,8 @@ if __name__ == "__main__":
 
     for skill in tqdm(range(num_skills)):
         for repeat in range(3):
+            env = create_test_env(env_id, n_envs=1, seed=repeat, log_dir=openai_log_path, should_render=True, )
             evaluate(skill, repeat=repeat)
+            env.envs[0].unwrapped.close()
+            env.close()
+            del env
