@@ -10,8 +10,12 @@ import tensorflow as tf
 from stable_baselines import logger
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.runners import AbstractEnvRunner
+from stable_baselines.DIAYN.policies_ppo import DIAYNPPOPolicy
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
+
+
+EPS = 1E-6
 
 
 class DIAYN_PPO(ActorCriticRLModel):
@@ -45,15 +49,23 @@ class DIAYN_PPO(ActorCriticRLModel):
     :param policy_kwargs: (dict) additional arguments to be passed to the policy on creation
     :param full_tensorboard_log: (bool) enable additional logging when using tensorboard
         WARNING: this logging can take a lot of space quickly
+    :param num_skills: (int) number of the skills we want to train
+    :param scale_intrinsic: (float) scale factor for intrinsic reward
     """
 
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False):
+                 full_tensorboard_log=False, num_skills=20, scale_intrinsic=1.0, save_path=None):
 
-        super(PPO2, self).__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
-                                   _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs)
+        super(DIAYN_PPO, self).__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
+                                        _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs)
+
+        # Multi-skill specific
+        self.num_skills = num_skills
+        self.scale_intrinsic = scale_intrinsic
+        self.p_z = 1.0 / num_skills
+        self.save_path = save_path
 
         self.learning_rate = learning_rate
         self.cliprange = cliprange
@@ -74,11 +86,13 @@ class DIAYN_PPO(ActorCriticRLModel):
         self.action_ph = None
         self.advs_ph = None
         self.rewards_ph = None
+        self.p_z_ph = None
         self.old_neglog_pac_ph = None
         self.old_vpred_ph = None
         self.learning_rate_ph = None
         self.clip_range_ph = None
         self.entropy = None
+        self.intrisic_reward = None
         self.vf_loss = None
         self.pg_loss = None
         self.approxkl = None
@@ -95,6 +109,12 @@ class DIAYN_PPO(ActorCriticRLModel):
         self.n_batch = None
         self.summary = None
         self.episode_reward = None
+        # for debug
+        self.discriminator_logit = None
+        self.discriminator_z = None
+        self.original_intrinsic_reward = None
+        self.intrinsic_reward_mean = None
+        self.discriminator_train_op = None
 
         if _init_setup_model:
             self.setup_model()
@@ -108,7 +128,7 @@ class DIAYN_PPO(ActorCriticRLModel):
     def setup_model(self):
         with SetVerbosity(self.verbose):
 
-            assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the PPO2 model must be " \
+            assert issubclass(self.policy, DIAYNPPOPolicy), "Error: the input policy for the PPO2 model must be " \
                                                                "an instance of common.policies.ActorCriticPolicy."
 
             self.n_batch = self.n_envs * self.n_steps
@@ -145,6 +165,7 @@ class DIAYN_PPO(ActorCriticRLModel):
                     self.old_vpred_ph = tf.placeholder(tf.float32, [None], name="old_vpred_ph")
                     self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
                     self.clip_range_ph = tf.placeholder(tf.float32, [], name="clip_range_ph")
+                    self.p_z_ph = tf.placeholder(tf.float32, shape=(), name='p_z')
 
                     neglogpac = train_model.proba_distribution.neglogp(self.action_ph)
                     self.entropy = tf.reduce_mean(train_model.proba_distribution.entropy())
@@ -175,7 +196,6 @@ class DIAYN_PPO(ActorCriticRLModel):
                             tf.clip_by_value(train_model.value_flat - self.old_vpred_ph,
                                              - self.clip_range_vf_ph, self.clip_range_vf_ph)
 
-
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
                     vf_losses2 = tf.square(vpred_clipped - self.rewards_ph)
                     self.vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
@@ -199,6 +219,11 @@ class DIAYN_PPO(ActorCriticRLModel):
 
                     with tf.variable_scope('model'):
                         self.params = tf.trainable_variables()
+                        params_non_discriminator = []
+                        for param in self.params:
+                            if "discriminator" not in param.name:
+                                params_non_discriminator.append(param)
+                        self.params = params_non_discriminator
                         if self.full_tensorboard_log:
                             for var in self.params:
                                 tf.summary.histogram(var.name, var)
@@ -206,8 +231,22 @@ class DIAYN_PPO(ActorCriticRLModel):
                     if self.max_grad_norm is not None:
                         grads, _grad_norm = tf.clip_by_global_norm(grads, self.max_grad_norm)
                     grads = list(zip(grads, self.params))
+
+                    # Discriminator train op
+                    intrinsic_reward, logit, z_one_hot = train_model.intrinsic_reward, train_model.logit, train_model.z_one_hot
+                    self.discriminator_logit = logit
+                    self.discriminator_z = z_one_hot
+                    self.original_intrinsic_reward = intrinsic_reward
+                    # intrinsic reward minus log_p_z
+                    self.intrinsic_reward = intrinsic_reward - tf.expand_dims(tf.log(self.p_z_ph + EPS), axis=0)
+                    self.intrinsic_reward_mean = tf.reduce_mean(self.intrinsic_reward)
+                    discriminator_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
+                    discriminator_train_op = discriminator_optimizer.minimize(-1.0 * self.intrinsic_reward_mean,
+                                                                              var_list=tf_util.get_trainable_vars("model/discriminator/"))
+                    self.discriminator_train_op = discriminator_train_op
                 trainer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph, epsilon=1e-5)
-                self._train = trainer.apply_gradients(grads)
+                with tf.control_dependencies([discriminator_train_op]):
+                    self._train = trainer.apply_gradients(grads)
 
                 self.loss_names = ['policy_loss', 'value_loss', 'policy_entropy', 'approxkl', 'clipfrac']
 
@@ -269,7 +308,8 @@ class DIAYN_PPO(ActorCriticRLModel):
         td_map = {self.train_model.obs_ph: obs, self.action_ph: actions,
                   self.advs_ph: advs, self.rewards_ph: returns,
                   self.learning_rate_ph: learning_rate, self.clip_range_ph: cliprange,
-                  self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values}
+                  self.old_neglog_pac_ph: neglogpacs, self.old_vpred_ph: values,
+                  self.p_z_ph: self.p_z}
         if states is not None:
             td_map[self.train_model.states_ph] = states
             td_map[self.train_model.dones_ph] = masks
@@ -302,7 +342,18 @@ class DIAYN_PPO(ActorCriticRLModel):
 
         return policy_loss, value_loss, policy_entropy, approxkl, clipfrac
 
-    def learn(self, total_timesteps, callback=None, seed=None, log_interval=1, tb_log_name="PPO2",
+    def _sample_z(self):
+        """Samples z from p(z), using probabilities in self._p_z."""
+        return np.random.choice(self.num_skills)
+
+    def concat_obs_z(self, obs, z):
+        """Concatenates the observation to a one-hot encoding of Z."""
+        assert np.isscalar(z)
+        z_one_hot = np.zeros(self.num_skills)
+        z_one_hot[z] = 1
+        return np.hstack([obs, z_one_hot])
+
+    def learn(self, total_timesteps, callback=None, seed=None, log_interval=1, tb_log_name="DIAYN_PPO",
               reset_num_timesteps=True):
         # Transform to callable if needed
         self.learning_rate = get_schedule_fn(self.learning_rate)
@@ -420,7 +471,9 @@ class DIAYN_PPO(ActorCriticRLModel):
             "action_space": self.action_space,
             "n_envs": self.n_envs,
             "_vectorize_action": self._vectorize_action,
-            "policy_kwargs": self.policy_kwargs
+            "policy_kwargs": self.policy_kwargs,
+            "num_skills": self.num_skills,
+            "scale_intrinsic": self.scale_intrinsic
         }
 
         params_to_save = self.get_parameters()
@@ -462,7 +515,7 @@ class Runner(AbstractEnvRunner):
         mb_states = self.states
         ep_infos = []
         for _ in range(self.n_steps):
-            actions, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones)
+            actions, values, intrinsic_reward, neglogpacs = self.model.step(self.obs, self.states, self.dones)
             mb_obs.append(self.obs.copy())
             mb_actions.append(actions)
             mb_values.append(values)
@@ -477,6 +530,7 @@ class Runner(AbstractEnvRunner):
                 maybe_ep_info = info.get('episode')
                 if maybe_ep_info is not None:
                     ep_infos.append(maybe_ep_info)
+            rewards += intrinsic_reward * self.model.scale_intrinsic  # TODO: need double check
             mb_rewards.append(rewards)
         # batch of steps to batch of rollouts
         mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)

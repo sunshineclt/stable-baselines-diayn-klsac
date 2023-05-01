@@ -15,7 +15,8 @@ class DummyVecEnv(VecEnv):
     :param env_fns: ([Gym Environment]) the list of environments to vectorize
     """
 
-    def __init__(self, env_fns):
+    def __init__(self, env_fns, num_skills=10):
+        self.num_skills = num_skills
         self.envs = [fn() for fn in env_fns]
         env = self.envs[0]
         VecEnv.__init__(self, len(env_fns), env.observation_space, env.action_space)
@@ -23,7 +24,7 @@ class DummyVecEnv(VecEnv):
         self.keys, shapes, dtypes = obs_space_info(obs_space)
 
         self.buf_obs = OrderedDict([
-            (k, np.zeros((self.num_envs,) + tuple(shapes[k]), dtype=dtypes[k]))
+            (k, np.zeros((self.num_envs,) + tuple([shapes[k][0] + num_skills]), dtype=dtypes[k]))
             for k in self.keys])
         self.buf_dones = np.zeros((self.num_envs,), dtype=np.bool)
         self.buf_rews = np.zeros((self.num_envs,), dtype=np.float32)
@@ -34,6 +35,17 @@ class DummyVecEnv(VecEnv):
     def step_async(self, actions):
         self.actions = actions
 
+    def _sample_z(self):
+        """Samples z from p(z), using probabilities in self._p_z."""
+        return np.random.choice(self.num_skills)
+
+    def concat_obs_z(self, obs, z):
+        """Concatenates the observation to a one-hot encoding of Z."""
+        assert np.isscalar(z)
+        z_one_hot = np.zeros(self.num_skills)
+        z_one_hot[z] = 1
+        return np.hstack([obs, z_one_hot])
+
     def step_wait(self):
         for env_idx in range(self.num_envs):
             obs, self.buf_rews[env_idx], self.buf_dones[env_idx], self.buf_infos[env_idx] =\
@@ -42,6 +54,8 @@ class DummyVecEnv(VecEnv):
                 # save final observation where user can get it, then reset
                 self.buf_infos[env_idx]['terminal_observation'] = obs
                 obs = self.envs[env_idx].reset()
+                self.z = self._sample_z()
+            obs = self.concat_obs_z(obs, self.z)
             self._save_obs(env_idx, obs)
         return (self._obs_from_buf(), np.copy(self.buf_rews), np.copy(self.buf_dones),
                 self.buf_infos.copy())
@@ -49,6 +63,8 @@ class DummyVecEnv(VecEnv):
     def reset(self):
         for env_idx in range(self.num_envs):
             obs = self.envs[env_idx].reset()
+            self.z = self._sample_z()
+            obs = self.concat_obs_z(obs, self.z)
             self._save_obs(env_idx, obs)
         return self._obs_from_buf()
 

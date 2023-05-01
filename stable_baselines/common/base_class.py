@@ -573,9 +573,9 @@ class ActorCriticRLModel(BaseRLModel):
         if mask is None:
             mask = [False for _ in range(self.n_envs)]
         observation = np.array(observation)
-        vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
+        # vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
-        observation = observation.reshape((-1,) + self.observation_space.shape)
+        # observation = observation.reshape((-1,) + self.observation_space.shape)
         actions, _, states, _ = self.step(observation, state, mask, deterministic=deterministic)
 
         clipped_actions = actions
@@ -583,10 +583,10 @@ class ActorCriticRLModel(BaseRLModel):
         if isinstance(self.action_space, gym.spaces.Box):
             clipped_actions = np.clip(actions, self.action_space.low, self.action_space.high)
 
-        if not vectorized_env:
-            if state is not None:
-                raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
-            clipped_actions = clipped_actions[0]
+        # if not vectorized_env:
+        #     if state is not None:
+        #         raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
+        #     clipped_actions = clipped_actions[0]
 
         return clipped_actions, states
 
@@ -596,9 +596,9 @@ class ActorCriticRLModel(BaseRLModel):
         if mask is None:
             mask = [False for _ in range(self.n_envs)]
         observation = np.array(observation)
-        vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
+        # vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
-        observation = observation.reshape((-1,) + self.observation_space.shape)
+        # observation = observation.reshape((-1,) + self.observation_space.shape)
         actions_proba = self.proba_step(observation, state, mask)
 
         if len(actions_proba) == 0:  # empty list means not implemented
@@ -663,10 +663,10 @@ class ActorCriticRLModel(BaseRLModel):
         else:
             ret = actions_proba
 
-        if not vectorized_env:
-            if state is not None:
-                raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
-            ret = ret[0]
+        # if not vectorized_env:
+        #     if state is not None:
+        #         raise ValueError("Error: The environment must be vectorized when using recurrent policies.")
+        #     ret = ret[0]
 
         return ret
 
