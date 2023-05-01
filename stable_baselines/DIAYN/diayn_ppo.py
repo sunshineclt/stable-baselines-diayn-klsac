@@ -530,7 +530,7 @@ class Runner(AbstractEnvRunner):
                 maybe_ep_info = info.get('episode')
                 if maybe_ep_info is not None:
                     ep_infos.append(maybe_ep_info)
-            rewards += intrinsic_reward * self.model.scale_intrinsic  # TODO: need double check
+            rewards += intrinsic_reward * self.model.scale_intrinsic
             mb_rewards.append(rewards)
         # batch of steps to batch of rollouts
         mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)

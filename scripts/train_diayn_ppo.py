@@ -32,6 +32,7 @@ algo = "diayn"
 env_id = "CartPole-v1"
 seed = 1
 num_skills = 10
+scale_intrinsic = 0.5
 tensorboard_log = create_tensorboard_log_dir(env_id)
 hyperparams = load_hyperparameter_from_yml("diayn_ppo.yml", env_id)
 n_timesteps = int(hyperparams["n_timesteps"])
@@ -63,7 +64,7 @@ policy = MlpPolicy
 #                    tensorboard_log=tensorboard_log, verbose=1, save_path=save_path,
 #                    **hyperparams)
 # Train from scratch
-model = DIAYN_PPO(policy, env, scale_intrinsic=0.2,
+model = DIAYN_PPO(policy, env, scale_intrinsic=scale_intrinsic,
                   tensorboard_log=tensorboard_log, verbose=1, save_path=save_path, num_skills=num_skills,
                   policy_kwargs={"num_skills": num_skills},
                   **hyperparams)
