@@ -6,6 +6,7 @@ from collections import deque
 import gym
 import numpy as np
 import tensorflow as tf
+import os
 
 from stable_baselines import logger
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
@@ -449,6 +450,11 @@ class DIAYN_PPO(ActorCriticRLModel):
                     # compatibility with callbacks that have no return statement.
                     if callback(locals(), globals()) is False:
                         break
+
+                if update % 1000 == 0:
+                    this_save_path = "{}/{}/".format(self.save_path, update)
+                    os.makedirs(this_save_path, exist_ok=True)
+                    self.save(this_save_path + "model.pkl")
 
             return self
 

@@ -29,10 +29,10 @@ def linear_schedule(initial_value):
 
 
 algo = "diayn"
-env_id = "CartPole-v1"
+env_id = "LunarLander-v1"
 seed = 1
-num_skills = 10
-scale_intrinsic = 0.5
+num_skills = 20
+scale_intrinsic = 0.2
 tensorboard_log = create_tensorboard_log_dir(env_id)
 hyperparams = load_hyperparameter_from_yml("diayn_ppo.yml", env_id)
 n_timesteps = int(hyperparams["n_timesteps"])
