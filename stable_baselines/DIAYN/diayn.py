@@ -461,8 +461,8 @@ class DIAYN(OffPolicyRLModel):
             if self.action_noise is not None:
                 self.action_noise.reset()
             obs = self.env.reset()
-            z = self._sample_z()
-            obs = self.concat_obs_z(obs, z)
+            # z = self._sample_z()
+            # obs = self.concat_obs_z(obs, z)
             self.episode_reward = np.zeros((1,))
             ep_info_buf = deque(maxlen=100)
             n_updates = 0
@@ -495,7 +495,7 @@ class DIAYN(OffPolicyRLModel):
                 assert action.shape == self.env.action_space.shape
 
                 new_obs, reward, done, info = self.env.step(rescaled_action)
-                new_obs = self.concat_obs_z(new_obs, z)
+                # new_obs = self.concat_obs_z(new_obs, z)
 
                 # Store transition in the replay buffer.
                 self.replay_buffer.add(obs, action, reward, new_obs, float(done))
@@ -541,8 +541,8 @@ class DIAYN(OffPolicyRLModel):
                     if self.action_noise is not None:
                         self.action_noise.reset()
                     obs = self.env.reset()
-                    z = self._sample_z()
-                    obs = self.concat_obs_z(obs, z)
+                    # z = self._sample_z()
+                    # obs = self.concat_obs_z(obs, z)
                     episode_rewards.append(0.0)
 
                     maybe_is_success = info.get('is_success')
